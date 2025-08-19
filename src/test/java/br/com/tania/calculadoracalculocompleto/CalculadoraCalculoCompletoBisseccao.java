@@ -5,60 +5,55 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 import br.com.tania.calculadoracalculocompleto.models.InfosCalculo;
 import br.com.tania.calculadoracalculocompleto.models.Intervalo;
+import br.com.tania.calculadoracalculocompleto.models.Resultados;
+import net.objecthunter.exp4j.Expression;
+import net.objecthunter.exp4j.ExpressionBuilder;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
 @SpringBootTest
-class CalculadoraCalculoCompletoApplicationTests {
+class CalculadoraCalculoCompletoBisseccao {
+	String formula;
 
 	@Test
 	void calculoTesteBase() {
-		List<Integer> intervalos;
-		System.out.println("""
-				Digite uma formula usando
-				x -> Variavel.
-				^ -> Elevado.
-				num -> Numeros.
-				+ -> Soma.
-				- -> Subtração.
-				* -> Vezes
-				Exemplo: x^3-(-9)*x+3
-				""");
-		calcular(new InfosCalculo());
+		formula = "x^3 - 9*x + 3";
+		calcular();
 	}
 
-	// Math NÃO É BIBLIOTECA EXTERNA!!! NÃO TEM COMO FAZER ELEVADO EM DOUBLE SEM
-	// ISSO, A NÃO SER QUE EU USE UM FOR...
 	private Double formula(double x) {
-		return Double.valueOf(Math.pow(x, 3) - 9 * x + 3);
+		Expression exp = new ExpressionBuilder(formula)
+				.variables("x")
+				.build()
+				.setVariable("x", x);
+		Double resultado = exp.evaluate();
+		return resultado;
 	}
 
-	private void calcular(InfosCalculo calculo) {
-		// Ex: precissao = 0,001
-		Double precissao = calculo.getPrecissao();
-		// String formula = calculo.formula();
-		Double erro = Double.valueOf(0);
-
+	private void calcular() {
+		Double precissao = 0.001;
 		List<Intervalo> intervalos = calcularIntervalo();
+		List<Resultados> resultados = new ArrayList<>();
 		for (Intervalo intervalo : intervalos) {
 			while (true) {
-				Double x1 = intervalo.getEsquerda();
-				Double x2 = intervalo.getDireita();
-				Double y1 = formula(x1);
-				Double y2 = formula(x2);
+				Double x1 = intervalo.getDireita();
+				Double x2 = intervalo.getEsquerda();
 				Double m = (x1 + x2) / 2;
 				Double ym = formula(m);
-
-				if (precissao.compareTo(Math.abs(ym)) > 0) {
-					System.out.println("Finalizou uma");
+				if (Math.abs(ym) < precissao) {
+					resultados.add(new Resultados(m, ym));
 					break;
 				}
 				if (ym < 0) {
+					intervalo.setEsquerda(m);
+				} else {
 					intervalo.setDireita(m);
 				}
 			}
+		}
+		for (Resultados resultados2 : resultados) {
+			System.out.println(resultados2.getXm() + " | " + resultados2.getYm());
 		}
 	}
 
@@ -70,7 +65,11 @@ class CalculadoraCalculoCompletoApplicationTests {
 		for (Double i = 1000.0; i > -1000.0; i--) {
 			valorAtual = formula(i);
 			if (Math.signum(valorAtual) != Math.signum(valorAntigo)) {
-				intervalos.add(new Intervalo(i, iAntigo));
+				if (valorAtual < 0) {
+					intervalos.add(new Intervalo(i, iAntigo));
+				} else {
+					intervalos.add(new Intervalo(iAntigo, i));
+				}
 			}
 			valorAntigo = valorAtual;
 			iAntigo = i;

@@ -1,7 +1,5 @@
 package br.com.tania.calculadoracalculocompleto.models;
 
-import java.math.BigDecimal;
-
 public class Intervalo {
     private Double esquerda;
     private Double direita;

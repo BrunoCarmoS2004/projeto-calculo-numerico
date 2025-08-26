@@ -3,9 +3,9 @@ package br.com.tania.calculadoracalculocompleto;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import br.com.tania.calculadoracalculocompleto.models.InfosCalculo;
-import br.com.tania.calculadoracalculocompleto.models.Intervalo;
-import br.com.tania.calculadoracalculocompleto.models.Resultados;
+import br.com.tania.calculadoracalculocompleto.models.bi.InfosCalculoBi;
+import br.com.tania.calculadoracalculocompleto.models.bi.IntervaloBi;
+import br.com.tania.calculadoracalculocompleto.models.bi.ResultadosBi;
 import net.objecthunter.exp4j.Expression;
 import net.objecthunter.exp4j.ExpressionBuilder;
 
@@ -33,16 +33,17 @@ class CalculadoraCalculoCompletoBisseccao {
 
 	private void calcular() {
 		Double precissao = 0.001;
-		List<Intervalo> intervalos = calcularIntervalo();
-		List<Resultados> resultados = new ArrayList<>();
-		for (Intervalo intervalo : intervalos) {
+		List<IntervaloBi> intervalos = calcularIntervalo();
+		List<ResultadosBi> resultados = new ArrayList<>();
+		for (IntervaloBi intervalo : intervalos) {
 			while (true) {
 				Double x1 = intervalo.getDireita();
 				Double x2 = intervalo.getEsquerda();
 				Double m = (x1 + x2) / 2;
 				Double ym = formula(m);
-				if (Math.abs(ym) < precissao) {
-					resultados.add(new Resultados(m, ym));
+				Double erro = x1 - x2;
+				if (erro < precissao) {
+					resultados.add(new ResultadosBi(m, erro));
 					break;
 				}
 				if (ym < 0) {
@@ -52,30 +53,30 @@ class CalculadoraCalculoCompletoBisseccao {
 				}
 			}
 		}
-		for (Resultados resultados2 : resultados) {
+		for (ResultadosBi resultados2 : resultados) {
 			System.out.println(resultados2.getXm() + " | " + resultados2.getYm());
 		}
 	}
 
-	private List<Intervalo> calcularIntervalo() {
+	private List<IntervaloBi> calcularIntervalo() {
 		Double valorAtual = 0.0;
 		Double valorAntigo = 0.0;
 		Double iAntigo = 0.0;
-		List<Intervalo> intervalos = new ArrayList<>();
+		List<IntervaloBi> intervalos = new ArrayList<>();
 		for (Double i = 1000.0; i > -1000.0; i--) {
 			valorAtual = formula(i);
 			if (Math.signum(valorAtual) != Math.signum(valorAntigo)) {
 				if (valorAtual < 0) {
-					intervalos.add(new Intervalo(i, iAntigo));
+					intervalos.add(new IntervaloBi(i, iAntigo));
 				} else {
-					intervalos.add(new Intervalo(iAntigo, i));
+					intervalos.add(new IntervaloBi(iAntigo, i));
 				}
 			}
 			valorAntigo = valorAtual;
 			iAntigo = i;
 		}
 		intervalos.removeFirst();
-		for (Intervalo intervalo : intervalos) {
+		for (IntervaloBi intervalo : intervalos) {
 			System.out.println("|" + intervalo.getEsquerda() + " " + intervalo.getDireita() + "|\n");
 		}
 		return intervalos;

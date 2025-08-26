@@ -1,15 +1,15 @@
-package br.com.tania.calculadoracalculocompleto.models;
+package br.com.tania.calculadoracalculocompleto.models.bi;
 
-public class Resultados {
+public class ResultadosBi {
     private Double xm;
     private Double ym;
 
-    public Resultados(Double xm, Double ym) {
+    public ResultadosBi(Double xm, Double ym) {
         this.xm = xm;
         this.ym = ym;
     }
 
-    public Resultados() {
+    public ResultadosBi() {
     }
 
     public Double getXm() {

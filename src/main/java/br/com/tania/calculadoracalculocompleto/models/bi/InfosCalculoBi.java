@@ -1,13 +1,13 @@
-package br.com.tania.calculadoracalculocompleto.models;
+package br.com.tania.calculadoracalculocompleto.models.bi;
 
-public class InfosCalculo {
+public class InfosCalculoBi {
     private Double precissao;
     private String formula;
 
-    public InfosCalculo() {
+    public InfosCalculoBi() {
     }
 
-    public InfosCalculo(Double precissao, String formula) {
+    public InfosCalculoBi(Double precissao, String formula) {
         this.precissao = precissao;
         this.formula = formula;
     }

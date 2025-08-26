@@ -1,10 +1,10 @@
-package br.com.tania.calculadoracalculocompleto.models;
+package br.com.tania.calculadoracalculocompleto.models.bi;
 
-public class Intervalo {
+public class IntervaloBi {
     private Double esquerda;
     private Double direita;
 
-    public Intervalo(Double esquerda, Double direita) {
+    public IntervaloBi(Double esquerda, Double direita) {
         this.esquerda = esquerda;
         this.direita = direita;
     }

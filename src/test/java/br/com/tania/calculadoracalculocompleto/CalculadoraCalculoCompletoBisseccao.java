@@ -18,7 +18,7 @@ class CalculadoraCalculoCompletoBisseccao {
 
 	@Test
 	void calculoTesteBase() {
-		formula = "x^3 - 9*x + 3";
+		formula = "x^4-4*x^3-9*x^2+19*x";
 		calcular();
 	}
 
@@ -54,7 +54,7 @@ class CalculadoraCalculoCompletoBisseccao {
 			}
 		}
 		for (ResultadosBi resultados2 : resultados) {
-			System.out.println(resultados2.getXm() + " | " + resultados2.getYm());
+			System.out.println("Resultado: " + resultados2.getXm() + " | Erro: " + resultados2.getYm());
 		}
 	}
 

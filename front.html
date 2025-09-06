@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Cliente simples — Bisseção & Gauss</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      body {
+        font-family: system-ui, Arial, sans-serif;
+        margin: 24px;
+      }
+      h1 {
+        margin-bottom: 8px;
+      }
+      h2 {
+        margin-top: 28px;
+      }
+      fieldset {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 16px;
+        margin-top: 12px;
+      }
+      legend {
+        padding: 0 6px;
+        color: #333;
+      }
+      label {
+        display: inline-block;
+        margin: 6px 0;
+      }
+      input,
+      button {
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+      }
+      .row {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .grid {
+        display: grid;
+        gap: 6px;
+        margin-top: 10px;
+      }
+      .matrix-cell {
+        width: 80px;
+      }
+      .vector-cell {
+        width: 120px;
+      }
+      .actions {
+        margin-top: 12px;
+        display: flex;
+        gap: 10px;
+      }
+      .note {
+        color: #666;
+        font-size: 0.9rem;
+        margin-top: 6px;
+      }
+      .hr {
+        height: 1px;
+        background: #eee;
+        margin: 24px 0;
+      }
+
+      /* Resultados */
+      #out {
+        display: grid;
+        gap: 16px;
+      }
+      .card {
+        border: 1px solid #eee;
+        border-radius: 10px;
+        padding: 14px;
+        background: #fafafa;
+      }
+      .card h3 {
+        margin: 0 0 8px 0;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        border-bottom: 1px solid #eee;
+        padding: 8px;
+        text-align: right;
+      }
+      th:first-child,
+      td:first-child {
+        text-align: left;
+      }
+      .small {
+        color: #666;
+        font-size: 0.9rem;
+      }
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Envio de dados — Bisseção & Gauss</h1>
+    <div class="note">
+      Requisições <b>POST</b> para <code>http://localhost:8080/bissecao</code> e
+      <code>/gauss</code>. Use ponto como separador decimal.
+    </div>
+
+    <!-- BISSEÇÃO -->
+    <h2>Bisseção</h2>
+    <fieldset>
+      <legend>InfosCalculoBiDTO</legend>
+
+      <div class="row">
+        <label for="biPrec">Precisão (precissao):</label>
+        <input id="biPrec" type="number" step="any" value="0.0001" />
+      </div>
+
+      <div class="row" style="margin-top: 6px">
+        <label for="biFormula">Fórmula (formula):</label>
+        <input
+          id="biFormula"
+          type="text"
+          value="x^2 - 4"
+          style="min-width: 320px"
+        />
+      </div>
+
+      <div class="actions">
+        <button id="btnSendBi">Enviar Bisseção</button>
+      </div>
+    </fieldset>
+
+    <div class="hr"></div>
+
+    <!-- GAUSS -->
+    <h2>Gauss</h2>
+    <fieldset>
+      <legend>InfosCalculoGauss</legend>
+
+      <div class="row">
+        <label for="gaussN">Tamanho n (matriz n×n e vetor n):</label>
+        <input id="gaussN" type="number" min="1" value="3" />
+        <button id="btnBuildGauss">Gerar campos</button>
+      </div>
+
+      <div id="gaussArea" style="margin-top: 12px; display: none">
+        <div><b>Matriz (matix)</b></div>
+        <div id="matrixGrid" class="grid"></div>
+
+        <div style="margin-top: 16px"><b>Vetor (vector)</b></div>
+        <div id="vectorGrid" class="grid"></div>
+
+        <div class="actions">
+          <button id="btnSendGauss">Enviar Gauss</button>
+        </div>
+      </div>
+    </fieldset>
+
+    <h2>Saída</h2>
+    <div id="out">
+      <div id="outBi" class="card" style="display: none">
+        <h3>Retorno Bisseção</h3>
+        <div id="outBiTables"></div>
+        <div id="outBiRaw" class="small mono"></div>
+      </div>
+
+      <div id="outGauss" class="card" style="display: none">
+        <h3>Retorno Gauss</h3>
+        <div id="outGaussTables"></div>
+        <div id="outGaussRaw" class="small mono"></div>
+      </div>
+    </div>
+
+    <script>
+      // ---------- Helpers ----------
+      function $(id) {
+        return document.getElementById(id);
+      }
+      function formatNum(n) {
+        if (typeof n !== "number" || Number.isNaN(n)) return String(n);
+        // Ajuste fino de casas (exibe notação científica se muito pequeno)
+        const abs = Math.abs(n);
+        if ((abs !== 0 && abs < 1e-4) || abs >= 1e6)
+          return n.toExponential(6).replace(".", ",");
+        return n.toLocaleString("pt-BR", { maximumFractionDigits: 8 });
+      }
+      function parseFloatSafe(v) {
+        if (v === "" || v === null || v === undefined) return NaN;
+        return parseFloat(String(v).replace(",", "."));
+      }
+
+      function makeTable(headers, rows) {
+        const table = document.createElement("table");
+        const thead = document.createElement("thead");
+        const trh = document.createElement("tr");
+        headers.forEach((h) => {
+          const th = document.createElement("th");
+          th.textContent = h;
+          trh.appendChild(th);
+        });
+        thead.appendChild(trh);
+        table.appendChild(thead);
+
+        const tbody = document.createElement("tbody");
+        rows.forEach((r) => {
+          const tr = document.createElement("tr");
+          r.forEach((cell, idx) => {
+            const td = document.createElement("td");
+            // primeira coluna alinhada à esquerda
+            if (idx === 0) td.style.textAlign = "left";
+            td.textContent = cell;
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+        table.appendChild(tbody);
+        return table;
+      }
+
+      // ---------- Bisseção ----------
+      $("btnSendBi").addEventListener("click", async () => {
+        const prec = parseFloatSafe($("biPrec").value);
+        const formula = $("biFormula").value.trim();
+
+        if (isNaN(prec)) {
+          alert("Precisão inválida.");
+          return;
+        }
+        if (!formula) {
+          alert("Fórmula vazia.");
+          return;
+        }
+
+        const body = { precissao: prec, formula };
+
+        try {
+          const r = await fetch("http://localhost:8080/bissecao", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+
+          // tenta json, senão texto
+          let json, raw;
+          try {
+            json = await r.json();
+            raw = JSON.stringify(json, null, 2);
+          } catch {
+            raw = await r.text();
+          }
+
+          renderBissecao(json, raw);
+        } catch (e) {
+          renderBissecao(null, "Falha ao chamar /bissecao: " + e);
+        }
+      });
+
+      function renderBissecao(json, raw) {
+        $("outBi").style.display = "block";
+        const container = $("outBiTables");
+        container.innerHTML = "";
+        $("outBiRaw").textContent = raw ?? "";
+
+        if (!json || typeof json !== "object") {
+          container.innerHTML =
+            '<div class="small">Não foi possível interpretar como JSON.</div>';
+          return;
+        }
+
+        // Tabela de intervalos
+        if (Array.isArray(json.intervalos)) {
+          const rows = json.intervalos.map((it, idx) => [
+            `#${idx + 1}`,
+            formatNum(it.esquerda),
+            formatNum(it.direita),
+          ]);
+          const t = makeTable(["Iteração", "Esquerda", "Direita"], rows);
+          const title = document.createElement("div");
+          title.innerHTML = "<b>Intervalos</b>";
+          container.appendChild(title);
+          container.appendChild(t);
+        }
+
+        // Tabela de resultados
+        if (Array.isArray(json.resultados)) {
+          const rows = json.resultados.map((it, idx) => [
+            `#${idx + 1}`,
+            formatNum(it.xm),
+            formatNum(it.ym),
+          ]);
+          const t = makeTable(["Iteração", "xm", "ym"], rows);
+          const title = document.createElement("div");
+          title.style.marginTop = "12px";
+          title.innerHTML = "<b>Resultados</b>";
+          container.appendChild(title);
+          container.appendChild(t);
+        }
+      }
+
+      // ---------- Gauss (construção dinâmica) ----------
+      let nCurrent = 0;
+
+      $("btnBuildGauss").addEventListener("click", () => {
+        const n = parseInt($("gaussN").value, 10);
+        if (!Number.isInteger(n) || n <= 0) {
+          alert("Informe um n válido (>=1).");
+          return;
+        }
+        nCurrent = n;
+        $("gaussArea").style.display = "block";
+
+        // Matriz n×n
+        const matrixGrid = $("matrixGrid");
+        matrixGrid.innerHTML = "";
+        matrixGrid.style.gridTemplateColumns = `repeat(${n}, 1fr)`;
+        for (let i = 0; i < n; i++) {
+          for (let j = 0; j < n; j++) {
+            const inp = document.createElement("input");
+            inp.type = "number";
+            inp.step = "any";
+            inp.className = "matrix-cell";
+            inp.id = `m_${i}_${j}`;
+            matrixGrid.appendChild(inp);
+          }
+        }
+
+        // Vetor n
+        const vectorGrid = $("vectorGrid");
+        vectorGrid.innerHTML = "";
+        vectorGrid.style.gridTemplateColumns = `repeat(${Math.min(n, 4)}, 1fr)`;
+        for (let i = 0; i < n; i++) {
+          const inp = document.createElement("input");
+          inp.type = "number";
+          inp.step = "any";
+          inp.className = "vector-cell";
+          inp.id = `v_${i}`;
+          vectorGrid.appendChild(inp);
+        }
+      });
+
+      $("btnSendGauss").addEventListener("click", async () => {
+        const n = nCurrent;
+        if (n <= 0) {
+          alert(
+            'Gere os campos primeiro (defina n e clique em "Gerar campos").'
+          );
+          return;
+        }
+
+        // Coletar matriz
+        const mat = [];
+        for (let i = 0; i < n; i++) {
+          const row = [];
+          for (let j = 0; j < n; j++) {
+            const val = parseFloatSafe($(`m_${i}_${j}`).value);
+            if (isNaN(val)) {
+              alert(`Valor inválido na matriz em [${i + 1}, ${j + 1}].`);
+              return;
+            }
+            row.push(val);
+          }
+          mat.push(row);
+        }
+
+        // Coletar vetor
+        const vec = [];
+        for (let i = 0; i < n; i++) {
+          const val = parseFloatSafe($(`v_${i}`).value);
+          if (isNaN(val)) {
+            alert(`Valor inválido no vetor na posição [${i + 1}].`);
+            return;
+          }
+          vec.push(val);
+        }
+
+        const body = { matix: mat, vector: vec };
+
+        try {
+          const r = await fetch("http://localhost:8080/gauss", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+
+          // tenta json, senão texto
+          let json, raw;
+          try {
+            json = await r.json();
+            raw = JSON.stringify(json, null, 2);
+          } catch {
+            raw = await r.text();
+          }
+
+          renderGauss(json, raw);
+        } catch (e) {
+          renderGauss(null, "Falha ao chamar /gauss: " + e);
+        }
+      });
+
+      function renderGauss(json, raw) {
+        $("outGauss").style.display = "block";
+        const container = $("outGaussTables");
+        container.innerHTML = "";
+        $("outGaussRaw").textContent = raw ?? "";
+
+        if (!json || typeof json !== "object") {
+          container.innerHTML =
+            '<div class="small">Não foi possível interpretar como JSON.</div>';
+          return;
+        }
+
+        const res = Array.isArray(json.resultado) ? json.resultado : null;
+        if (!res) {
+          container.innerHTML =
+            '<div class="small">Campo "resultado" não encontrado.</div>';
+          return;
+        }
+
+        // Tabela do vetor solução
+        const rows = res.map((v, i) => [`x${i + 1}`, formatNum(v)]);
+        const t = makeTable(["Variável", "Valor"], rows);
+        const title = document.createElement("div");
+        title.innerHTML = "<b>Solução (vetor)</b>";
+        container.appendChild(title);
+        container.appendChild(t);
+
+        // Linha em formato "x1 = ..., x2 = ..."
+        const pretty = res
+          .map((v, i) => `x${i + 1} = ${formatNum(v)}`)
+          .join("; ");
+        const p = document.createElement("div");
+        p.className = "small mono";
+        p.style.marginTop = "8px";
+        p.textContent = pretty;
+        container.appendChild(p);
+      }
+    </script>
+  </body>
+</html>

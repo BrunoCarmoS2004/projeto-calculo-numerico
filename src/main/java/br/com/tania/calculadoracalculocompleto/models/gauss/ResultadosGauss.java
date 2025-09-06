@@ -1,5 +1,4 @@
 package br.com.tania.calculadoracalculocompleto.models.gauss;
 
-public class ResultadosGauss {
-
+public record ResultadosGauss(Double[] resultado) {
 }

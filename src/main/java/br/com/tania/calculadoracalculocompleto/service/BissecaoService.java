@@ -1,7 +1,11 @@
-package br.com.tania.calculadoracalculocompleto;
+package br.com.tania.calculadoracalculocompleto.service;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
 
 import br.com.tania.calculadoracalculocompleto.models.bi.CalculoFinalBiDTO;
 import br.com.tania.calculadoracalculocompleto.models.bi.InfosCalculoBiDTO;
@@ -10,18 +14,17 @@ import br.com.tania.calculadoracalculocompleto.models.bi.ResultadosBi;
 import net.objecthunter.exp4j.Expression;
 import net.objecthunter.exp4j.ExpressionBuilder;
 
-import java.util.ArrayList;
-import java.util.List;
-
-@SpringBootTest
-class CalculadoraCalculoCompletoBisseccao {
-	String formula;
+@Service
+public class BissecaoService {
+  String formula;
 	Double precissao;
-	@Test
-	void calculoTesteBase() {
-		formula = "x^4-4*x^3-9*x^2+19*x";
-		precissao = 0.001;
-		calcular(precissao);
+
+	public ResponseEntity<?> calculoBissecao(InfosCalculoBiDTO infosCalculoBiDTO) {
+		//formula = "x^4-4*x^3-9*x^2+19*x";
+    //precissao = 0.001;
+    formula = infosCalculoBiDTO.formula();
+    precissao = infosCalculoBiDTO.precissao();
+		return calcular();
 	}
 
 	private Double formula(double x) {
@@ -33,7 +36,7 @@ class CalculadoraCalculoCompletoBisseccao {
 		return resultado;
 	}
 
-	private CalculoFinalBiDTO calcular(Double precissao) {
+	private ResponseEntity<?> calcular() {
 		List<IntervaloBi> intervalos = calcularIntervalo();
 		List<ResultadosBi> resultados = new ArrayList<>();
 		for (IntervaloBi intervalo : intervalos) {
@@ -54,7 +57,7 @@ class CalculadoraCalculoCompletoBisseccao {
 				}
 			}
 		}
-		return new CalculoFinalBiDTO(intervalos, resultados);
+		return ResponseEntity.status(HttpStatus.OK).body(new CalculoFinalBiDTO(intervalos, resultados));
 	}
 
 	private List<IntervaloBi> calcularIntervalo() {

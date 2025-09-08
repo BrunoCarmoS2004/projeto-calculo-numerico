@@ -17,6 +17,7 @@ import java.util.List;
 class CalculadoraCalculoCompletoBisseccao {
 	String formula;
 	Double precissao;
+
 	@Test
 	void calculoTesteBase() {
 		formula = "x^4-4*x^3-9*x^2+19*x";
@@ -47,7 +48,7 @@ class CalculadoraCalculoCompletoBisseccao {
 					resultados.add(new ResultadosBi(m, erro));
 					break;
 				}
-				if (ym < 0) {
+				if (formula(x1) * ym < 0) {
 					intervalo.setEsquerda(m);
 				} else {
 					intervalo.setDireita(m);

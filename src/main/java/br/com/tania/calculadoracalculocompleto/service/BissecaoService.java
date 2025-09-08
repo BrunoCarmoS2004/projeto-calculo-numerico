@@ -16,14 +16,12 @@ import net.objecthunter.exp4j.ExpressionBuilder;
 
 @Service
 public class BissecaoService {
-  String formula;
+	String formula;
 	Double precissao;
 
 	public ResponseEntity<?> calculoBissecao(InfosCalculoBiDTO infosCalculoBiDTO) {
-		//formula = "x^4-4*x^3-9*x^2+19*x";
-    //precissao = 0.001;
-    formula = infosCalculoBiDTO.formula();
-    precissao = infosCalculoBiDTO.precissao();
+		formula = infosCalculoBiDTO.formula();
+		precissao = infosCalculoBiDTO.precissao();
 		return calcular();
 	}
 
@@ -32,28 +30,35 @@ public class BissecaoService {
 				.variables("x")
 				.build()
 				.setVariable("x", x);
-		Double resultado = exp.evaluate();
-		return resultado;
+		return exp.evaluate();
 	}
 
 	private ResponseEntity<?> calcular() {
 		List<IntervaloBi> intervalos = calcularIntervalo();
 		List<ResultadosBi> resultados = new ArrayList<>();
+
 		for (IntervaloBi intervalo : intervalos) {
 			while (true) {
-				Double x1 = intervalo.getDireita();
-				Double x2 = intervalo.getEsquerda();
-				Double m = (x1 + x2) / 2;
-				Double ym = formula(m);
-				Double erro = x1 - x2;
-				if (erro < precissao) {
+				double x1 = intervalo.getEsquerda();
+				double x2 = intervalo.getDireita();
+				double m = (x1 + x2) / 2.0;
+				double yx1 = formula(x1);
+				double ym = formula(m);
+				double erro = Math.abs(x2 - x1);
+
+				if (erro <= precissao) {
 					resultados.add(new ResultadosBi(m, erro));
 					break;
 				}
-				if (ym < 0) {
-					intervalo.setEsquerda(m);
-				} else {
+				if (ym == 0.0) {
+					resultados.add(new ResultadosBi(m, 0.0));
+					break;
+				}
+
+				if (yx1 * ym < 0) {
 					intervalo.setDireita(m);
+				} else {
+					intervalo.setEsquerda(m);
 				}
 			}
 		}
@@ -61,25 +66,20 @@ public class BissecaoService {
 	}
 
 	private List<IntervaloBi> calcularIntervalo() {
-		Double valorAtual = 0.0;
-		Double valorAntigo = 0.0;
-		Double iAntigo = 0.0;
+		double iAntigo = -1000.0;
+		double valorAntigo = formula(iAntigo);
+
 		List<IntervaloBi> intervalos = new ArrayList<>();
-		for (Double i = 1000.0; i > -1000.0; i--) {
-			valorAtual = formula(i);
+		for (double i = iAntigo + 1.0; i <= 1000.0; i += 1.0) {
+			double valorAtual = formula(i);
 			if (Math.signum(valorAtual) != Math.signum(valorAntigo)) {
-				if (valorAtual < 0) {
-					intervalos.add(new IntervaloBi(i, iAntigo));
-				} else {
-					intervalos.add(new IntervaloBi(iAntigo, i));
-				}
+				double esquerda = Math.min(iAntigo, i);
+				double direita = Math.max(iAntigo, i);
+				intervalos.add(new IntervaloBi(esquerda, direita));
 			}
-			valorAntigo = valorAtual;
+
 			iAntigo = i;
-		}
-		intervalos.removeFirst();
-		for (IntervaloBi intervalo : intervalos) {
-			System.out.println("|" + intervalo.getEsquerda() + " " + intervalo.getDireita() + "|\n");
+			valorAntigo = valorAtual;
 		}
 		return intervalos;
 	}
